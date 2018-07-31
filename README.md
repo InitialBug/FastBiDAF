@@ -3,11 +3,15 @@ A pytorch implemention of BiDAF based on CNN<br>
 The CNN module is GLDR mostly based on [FAST READING COMPREHENSION WITH CONVNETS](https://arxiv.org/pdf/1711.04352v1.pdf)<br>
 The model encoder block is based on [QAnet](https://arxiv.org/pdf/1804.09541.pdf)<br>
 
+## Difference from the paper
+1. This reposity is a combination of QAnet and GLDR. I did this because QAnet need more memory with multihead attention.<br>
+2. I use beam search in the evaluate process with a beam size 5 instead of traveling all the probabilities.<br>
+
 ## Usage
-1. run ```download.sh``` to download the SQuAD dataset and GLOVE word embeddings.<br>
-2. run ```python config.py --mode preprocess``` to preprocess the data and start the first time training process.<br>
-3. run ```python config.py --mode train``` to train the model or ```python config.py --mode train --finetune True``` to finetune a model(note your should manually change the model name in main.py)<br>
-4. run ```python config.py --mode dev``` to evaluate the model and the answer file will be stored. Because this process is same as the test, I didn't duplicate the test() function.<br>
+1. Run ```download.sh``` to download the SQuAD dataset and GLOVE word embeddings.<br>
+2. Run ```python config.py --mode preprocess``` to preprocess the data and start the first time training process.<br>
+3. Run ```python config.py --mode train``` to train the model or ```python config.py --mode train --finetune True``` to finetune a model(note your should manually change the model name in main.py)<br>
+4. Run ```python config.py --mode dev``` to evaluate the model and the answer file will be stored. Because this process is same as the test, I didn't duplicate the test() function.<br>
 
 
 ## Performance
