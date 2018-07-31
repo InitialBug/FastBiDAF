@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from config import device
-
 
 
 #--------------------------------------------------Base Module--------------------------------------------------#
@@ -11,15 +9,30 @@ class EMA():
     def __init__(self, mu):
         self.mu = mu
         self.shadow = {}
+        self.original = {}
 
     def register(self, name, val):
         self.shadow[name] = val.clone()
 
-    def __call__(self, name, x):
-        assert name in self.shadow
-        new_average = (1.0 - self.mu) * x + self.mu * self.shadow[name]
-        self.shadow[name] = new_average.clone()
-        return new_average
+    def __call__(self, model, num_updates):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                assert name in self.shadow
+                decay = min(self.mu, (1+num_updates)/(10+num_updates))
+                new_average = (1.0 - decay) * param.data + decay * self.shadow[name]
+                self.shadow[name] = new_average.clone()
+
+    def assign(self, model):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                assert name in self.shadow
+                self.original[name] = param.data.clone()
+                param.data = self.shadow[name]
+    def resume(self, model):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                assert name in self.shadow
+                param.data = self.original[name]
 
 # position embedding is direct computed
 def PosEncoder(input, seq_len, dim):
@@ -124,14 +137,13 @@ class CQAttention(nn.Module):
     def forward(self, contex, question):
         contex_len = contex.shape[1]
         question_len = question.shape[1]
-        batch_size = contex.shape[0]
-        S = torch.zeros(batch_size, contex_len, question_len).to(device)
-        for i in range(contex_len):
-            for j in range(question_len):
-                c = contex[:, i, :]
-                q = question[:, j, :]
-                v = torch.cat([q, c, q * c], dim=1)
-                S[:, i, j] = self.W(v).squeeze()
+        c=contex.unsqueeze(dim=2)
+        c=c.repeat([1,1,question_len,1])
+        q=question.unsqueeze(dim=1)
+        q=q.repeat([1,contex_len,1,1])
+        S=torch.cat([q,c,q*c],dim=3)
+        S=self.W(S).squeeze(dim=3)
+
         S1 = F.softmax(S, dim=2)
         S2 = F.softmax(S, dim=1)
         A = torch.bmm(S1, question)
@@ -199,7 +211,7 @@ class GLDR(nn.Module):
     def forward(self, input):
         out=self.exp_conv(input)
         out=self.refine(out)
-        out=F.dropout(out,p=self.dropout)
+        out=F.dropout(out,p=self.dropout,training=self.training)
         return out
 
 
