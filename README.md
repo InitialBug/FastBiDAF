@@ -42,7 +42,7 @@ The model encoder block is based on [QAnet](https://arxiv.org/pdf/1804.09541.pdf
 <td>77.3</td>
 </tr>
 <tr>
-<td align="center">FastBiDAF</td>
+<th align="center">FastBiDAF</th>
 <td>63.7</td>
 <td>74.3</td>
 </tr>
