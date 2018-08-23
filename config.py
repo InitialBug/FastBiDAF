@@ -11,9 +11,9 @@ The content of this file is mostly copied from https://github.com/HKUST-KnowComp
 
 home = os.path.expanduser(".")
 target_dir = 'data'
-train_file = os.path.join(home, target_dir, "squad", "train-v2.0.json")
-dev_file = os.path.join(home, target_dir, "squad", "dev-v2.0.json")
-test_file = os.path.join(home, target_dir, "squad", "dev-v2.0.json")
+train_file = os.path.join(home, target_dir, "squad", "train-v1.1.json")
+dev_file = os.path.join(home, target_dir, "squad", "dev-v1.1.json")
+test_file = os.path.join(home, target_dir, "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, target_dir, "glove", "glove.840B.300d.txt")
 
 event_dir = "log"
@@ -47,7 +47,7 @@ if not os.path.exists(answer_dir):
     os.makedirs(answer_dir)
 
 flags.DEFINE_string("mode", "dev", "preprocess/train/debug/dev/test")
-flags.DEFINE_boolean("finetune", False, "finetune the model")
+flags.DEFINE_string("model", '', "model name")
 
 flags.DEFINE_string("target_dir", target_dir, "")
 flags.DEFINE_string("event_dir", event_dir, "")
@@ -99,17 +99,17 @@ flags.DEFINE_integer("num_threads", 4, "Number of threads in input pipeline")
 flags.DEFINE_boolean("is_bucket", False, "build bucket batch iterator or not")
 flags.DEFINE_list("bucket_range", [40, 401, 40], "the range of bucket")
 
-flags.DEFINE_integer("batch_size", 32, "Batch size")
+flags.DEFINE_integer("batch_size", 40, "Batch size")
 flags.DEFINE_integer("epochs", 10, "Number of epochs")
 flags.DEFINE_integer("checkpoint", 1000, "checkpoint to save and evaluate the model")
+flags.DEFINE_float("decay", 0.9999, "Exponential moving average decay")
 flags.DEFINE_integer("period", 100, "period to save batch loss")
 flags.DEFINE_integer("val_batch_size", 20, "Number of batches to evaluate the model")
-flags.DEFINE_float("dropout", 0.1, "Dropout prob across the layers")
+flags.DEFINE_float("dropout", 0.2, "Dropout prob across the layers")
 flags.DEFINE_float("dropout_char", 0.05, "Dropout prob across the layers")
 flags.DEFINE_float("grad_clip", 5.0, "Global Norm gradient clipping rate")
 flags.DEFINE_float("learning_rate", 0.001, "Learning rate")
-flags.DEFINE_float("decay", 0.9999, "Exponential moving average decay")
-flags.DEFINE_float("L2_norm", 3e-7, "L2 norm scale")
+flags.DEFINE_float("L2_norm", 3e-5, "L2 norm scale")
 # flags.DEFINE_integer("hidden", 96, "Hidden size")
 flags.DEFINE_integer("early_stop", 10, "Checkpoints for early stop")
 
@@ -127,7 +127,7 @@ fasttext_file = os.path.join(home, target_dir, "fasttext", "wiki-news-300d-1M.ve
 flags.DEFINE_string("fasttext_file", fasttext_file, "Fasttext word embedding")
 flags.DEFINE_boolean("fasttext", False, "Whether to use fasttext")
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 cpu = torch.device("cpu")
 config = flags.FLAGS
 
@@ -141,7 +141,7 @@ def run(_):
 
     elif config.mode == "debug":
         config.epochs = 1
-        config.batch_size = 32
+        config.batch_size = 5
         config.val_batch_size = 20
         config.checkpoint = 1
         config.period = 1

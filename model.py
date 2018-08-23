@@ -46,34 +46,63 @@ def PosEncoder(input, seq_len, dim):
     return out
 
 
+# class DepthwiseSeparableConv(nn.Module):
+#     def __init__(self, input_dim, out_dim, kernel_size, conv_dim=1, padding=0, bias=True, activation=False,dilation=1):
+#         super().__init__()
+#         self.activation = activation
+#         if conv_dim == 1:
+#             self.depthwise_conv = nn.Conv1d(in_channels=input_dim, out_channels=out_dim, kernel_size=kernel_size,
+#                                             groups=input_dim,
+#                                             padding=padding, bias=bias,dilation=dilation)
+#             self.pointwise_conv = nn.Conv1d(in_channels=out_dim, out_channels=out_dim, kernel_size=1, padding=0,
+#                                             bias=bias)
+#
+#         elif conv_dim == 2:
+#             self.depthwise_conv = nn.Conv2d(in_channels=input_dim, out_channels=out_dim, kernel_size=kernel_size,
+#                                             groups=input_dim,
+#                                             padding=padding, bias=bias,dilation=dilation)
+#             self.pointwise_conv = nn.Conv2d(in_channels=out_dim, out_channels=out_dim, kernel_size=1, padding=0,
+#                                             bias=bias)
+#         else:
+#             raise Exception("Wrong dimension for Depthwise Separable Convolution!")
+#         if activation:
+#             nn.init.kaiming_normal_(self.depthwise_conv.weight,nonlinearity='relu')
+#             nn.init.kaiming_normal_(self.pointwise_conv.weight,nonlinearity='relu')
+#         else:
+#             nn.init.xavier_normal_(self.depthwise_conv.weight)
+#             nn.init.xavier_normal_(self.pointwise_conv.weight)
+#
+#
+#     def forward(self, input):
+#         input = input.transpose(1, 2)
+#         out = self.pointwise_conv(self.depthwise_conv(input))
+#         out = out.transpose(1, 2)
+#         if self.activation:
+#             return F.relu(out)
+#         else:
+#             return out
+
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, input_dim, out_dim, kernel_size, conv_dim=1, padding=0, bias=True, activation=False,dilation=1):
         super().__init__()
         self.activation = activation
         if conv_dim == 1:
-            self.depthwise_conv = nn.Conv1d(in_channels=input_dim, out_channels=out_dim, kernel_size=kernel_size,
-                                            groups=input_dim,
+            self.conv = nn.Conv1d(in_channels=input_dim, out_channels=out_dim, kernel_size=kernel_size,
                                             padding=padding, bias=bias,dilation=dilation)
-            self.pointwise_conv = nn.Conv1d(in_channels=out_dim, out_channels=out_dim, kernel_size=1, padding=0,
-                                            bias=bias)
-        elif conv_dim == 2:
-            self.depthwise_conv = nn.Conv2d(in_channels=input_dim, out_channels=out_dim, kernel_size=kernel_size,
-                                            groups=input_dim,
-                                            padding=padding, bias=bias,dilation=dilation)
-            self.pointwise_conv = nn.Conv2d(in_channels=out_dim, out_channels=out_dim, kernel_size=1, padding=0,
-                                            bias=bias)
+
+        if activation:
+            nn.init.kaiming_normal_(self.conv.weight,nonlinearity='relu')
         else:
-            raise Exception("Wrong dimension for Depthwise Separable Convolution!")
+            nn.init.xavier_normal_(self.conv.weight)
 
     def forward(self, input):
         input = input.transpose(1, 2)
-        out = self.pointwise_conv(self.depthwise_conv(input))
+        out = self.conv(input)
         out = out.transpose(1, 2)
         if self.activation:
             return F.relu(out)
         else:
             return out
-
 
 class Highway(nn.Module):
     def __init__(self, layer_num, dim):
@@ -98,6 +127,7 @@ class DimReduce(nn.Module):
     def __init__(self, input_dim, out_dim,kernel_size):
         super().__init__()
         self.convout = nn.Conv1d(input_dim, out_dim*2, kernel_size, padding=kernel_size // 2)
+        nn.init.xavier_normal_(self.convout.weight)
 
     def forward(self, input):
         input = input.transpose(1, 2)
@@ -134,7 +164,7 @@ class CQAttention(nn.Module):
         self.dropout = dropout
         self.W = nn.Linear(input_dim * 3, 1)
 
-    def forward(self, contex, question):
+    def forward(self, contex, question,contex_mask,question_mask):
         contex_len = contex.shape[1]
         question_len = question.shape[1]
         c=contex.unsqueeze(dim=2)
@@ -143,6 +173,12 @@ class CQAttention(nn.Module):
         q=q.repeat([1,contex_len,1,1])
         S=torch.cat([q,c,q*c],dim=3)
         S=self.W(S).squeeze(dim=3)
+
+        contex_mask=contex_mask.unsqueeze(dim=2)
+        contex_mask=contex_mask.repeat([1,1,question_len])
+        question_mask=question_mask.unsqueeze(dim=1)
+        question_mask=question_mask.repeat([1,contex_len,1])
+        S=S+contex_mask+question_mask
 
         S1 = F.softmax(S, dim=2)
         S2 = F.softmax(S, dim=1)
@@ -230,7 +266,7 @@ class FastBiDAF(nn.Module):
         self.pointer = Pointer(emb_dim)
 
 
-    def forward(self, contex_word, contex_char, question_word, question_char):
+    def forward(self, contex_word, contex_char, question_word, question_char,contex_mask,question_mask):
         contex_word = self.word_emb(contex_word)
         contex_char = self.char_emb(contex_char)
         question_word = self.word_emb(question_word)
@@ -241,7 +277,7 @@ class FastBiDAF(nn.Module):
         question=self.dim_reduce1(question)
         contex = self.embedding_encoder(contex)
         question = self.embedding_encoder(question)
-        CQ = self.cq_attention(contex, question)
+        CQ = self.cq_attention(contex, question,contex_mask,question_mask)
         CQ=self.dim_reduce2(CQ)
         M0 = self.model_encoder(CQ)
         M1 = self.model_encoder(M0)
