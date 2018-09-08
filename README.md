@@ -10,14 +10,45 @@ The model encoder block is based on [QAnet](https://arxiv.org/pdf/1804.09541.pdf
 ## Usage
 1. Run ```download.sh``` to download the SQuAD dataset and GLOVE word embeddings.<br>
 2. Run ```python config.py --mode preprocess``` to preprocess the data and start the first time training process.<br>
-3. Run ```python config.py --mode train``` to train the model or ```python config.py --mode train --finetune True``` to finetune a model(note you should manually change the model name in main.py)<br>
-4. Run ```python config.py --mode dev``` to evaluate the model and the answer file will be stored. Because this process is same as the test, I didn't duplicate the test() function.<br>
+3. Run ```python config.py --mode train``` to train the model or ```python config.py --mode train --model modelname``` to finetune a model.(eg. ```python config.py --mode train --model mode_final.pkl```)<br>
+4. Run ```python config.py --mode dev --model modelname``` to evaluate the model and the answer file will be stored. Because this process is same as the test, I didn't duplicate the test() function.<br>
 
 
 ## Performance
 1. The model runs fast and will have a good result after 3 hours.(TiTan XP 12GB memory)<br>
-2. The best score I test is F1 73 on the dev set without any finetuning. The most hyperparameters are referred from other models, I don't know whether it's good enough.<br>
+2. The best score I test is F1 74 on the dev set without any finetuning. The most hyperparameters are referred from other models, I don't know whether it's good enough.<br>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>EM</th>
+<th>F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">QAnet</td>
+<td>73.6</td>
+<td>82.7</td>
+</tr>
+<tr>
+<td align="center">GLDR</td>
+<td>68.2</td>
+<td>77.2</td>
+</tr>
+<tr>
+<td align="center">BiDAF</td>
+<td>67.7</td>
+<td>77.3</td>
+</tr>
+<tr>
+<th align="center">FastBiDAF</th>
+<td>63.7</td>
+<td>74.3</td>
+</tr>
+</tbody>
+</table>
 
 ## Contributions
-1. Welcome to test my code and report your performance. If you have enough time, finetuing the model is a good choice to get better result.<br>
+1. Welcome to test my code and report your performance. If you have enough time, finetuing the model(dropout, conv layer number, etc.) is a good choice to get better results.<br>
 
