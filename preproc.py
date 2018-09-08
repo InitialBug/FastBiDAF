@@ -290,11 +290,11 @@ def preproc(config):
         char_counter, "char", emb_file=char_emb_file, vec_size=char_emb_dim)
 
     build_features(config, train_examples, "train",
-                   config.train_record_file,word2idx_dict, char2idx_dict)
+                   config.train_token_file,word2idx_dict, char2idx_dict)
     dev_meta = build_features(config, dev_examples, "dev",
-                              config.dev_record_file, word2idx_dict, char2idx_dict)
+                              config.dev_token_file, word2idx_dict, char2idx_dict)
     test_meta = build_features(config, test_examples, "test",
-                               config.test_record_file, word2idx_dict, char2idx_dict, is_test=True)
+                               config.test_token_file, word2idx_dict, char2idx_dict, is_test=True)
 
     save(config.word_emb_file, word_emb_mat, message="word embedding")
     # save(config.char_emb_file, char2idx_dict, message="char dict")
